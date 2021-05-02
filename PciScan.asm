@@ -56,7 +56,7 @@ CheckDevice:
 		MOV		[regHeadType],EAX		
 		
 ;бшбндхл дюммше мю щйпюм					
-		MOV		DL,BYTE[confAddr+2]			;бшъямъел мнлеп ьхмш
+		MOV		BL,BYTE[confAddr+2]			;бшъямъел мнлеп ьхмш
 		ADD		[addrBdf],160				;якедсчыюъ ярпнйю бшбндю б бхденоюлърх(80 * (мю яхлб. + юрпха.))	
 		MOV		DI,[addrBdf]	
 		CMP		DI,0F00H					;онякедмъъ кх ярпнйю?	
@@ -65,13 +65,13 @@ CheckDevice:
 	CALL	ConvNumOfStr1					;бшбндел мнлеп ьхмш
 		MOV		AL,'_'				           
 		STOSW								;бшбндел мхфмхи якщь
-		MOV		DL,BYTE[confAddr+1]			   		
-		SHR		DL,3						;мнлеп сярпниярбю ярюпьхе 5 ахр
+		MOV		BL,BYTE[confAddr+1]			   		
+		SHR		BL,3						;мнлеп сярпниярбю ярюпьхе 5 ахр
 	CALL	ConvNumOfStr1
 		MOV		AL,'_'
 		STOSW
-		MOV		DL,BYTE[confAddr+1]
-		AND		DL,7						;яювйхпсел ярюпьхе 5 ахр; мнлеп тсмйжхх 	
+		MOV		BL,BYTE[confAddr+1]
+		AND		BL,7						;яювйхпсел ярюпьхе 5 ахр; мнлеп тсмйжхх 	
 	CALL	ConvNumOfStr1	                
 		POP		EBX							;б EBX пецхярп йнмт. опнярпюмярбю PCI
 		ADD		[addrVen],160				;онйюгшбюер мю леярн дкъ бшбндю VenID
@@ -80,14 +80,16 @@ CheckDevice:
 		SHR		EBX,16
 		ADD		[addrDev],160				;онйюгшбюер мю леярн дкъ бшбндю DevID
 		MOV		DI,[addrDev]				
-	CALL	ConvNumOfStr2	
-
+	CALL	ConvNumOfStr2
+	
 		MOV		BX,WORD[regClCode+2]
 		ADD		[addrRegPci],160				;онйюгшбюер мю леярн дкъ бшбндю DevID
 		MOV		DI,[addrRegPci]				
 	CALL	ConvNumOfStr2	
+		MOV		BL,BYTE[regClCode+1]	
+	CALL	ConvNumOfStr1
 	
-		MOV		DL,BYTE[regHeadType+2]
+		MOV		BL,BYTE[regHeadType+2]
 		ADD		[addrHeadType],160			;онйюгшбюер мю леярн бшапнммнцн RegPci
 		MOV		DI,[addrHeadType]
 	CALL	ConvNumOfStr1
@@ -187,11 +189,11 @@ L1:
 	JMP	@b	
 
 ;опенапюгсел 1 аюир б ASCII яхлбнк
-;б DL бшбндхлне HEX гмювемхе
+;б BL бшбндхлне HEX гмювемхе
 ;б ES:DI юдпея бхденоюлърх
 ConvNumOfStr1:
 		MOV		AH,00000100B	
-		MOV		AL,DL			;бшбндхлши аюир	
+		MOV		AL,BL			;бшбндхлши аюир	
 		PUSH	AX				;янупюмъел AL
 		SHR		AL,4			;ярюпьхи пюгпъд аюирю
 	CALL 	.CharOut			;бшбнд яхлбнкю
