@@ -16,7 +16,6 @@ Start:
 		MOV		SS,AX
 		MOV		SP,Start
 			STI
-;!!!!!!!!!!!!!сярюмнбхрэ бхден пефхл 
 		MOV		AH,1
 		MOV		CX,2000H
 	INT		10H								;сахпюел йспянп
@@ -63,12 +62,12 @@ CheckDevice:
 	JE	NextPage							;сярюмюбкхбюел бшбнд мю мнбши щйпюм
 .L1:
 	CALL	ConvNumOfStr1					;бшбндел мнлеп ьхмш
-		MOV		AL,'_'				           
+		MOV		AL,'.'				           
 		STOSW								;бшбндел мхфмхи якщь
 		MOV		BL,BYTE[confAddr+1]			   		
 		SHR		BL,3						;мнлеп сярпниярбю ярюпьхе 5 ахр
 	CALL	ConvNumOfStr1
-		MOV		AL,'_'
+		MOV		AL,':'
 		STOSW
 		MOV		BL,BYTE[confAddr+1]
 		AND		BL,7						;яювйхпсел ярюпьхе 5 ахр; мнлеп тсмйжхх 	
