@@ -26,9 +26,10 @@ Start:
 	CALL	FieldMarkup
 		XOR		CL,CL
 
-;жхйк яйюмхпнбюмхъ сярпниярб		
-CheckDevice:		 
-;оюксвюел дюммше хг оюпрнб	I/O					
+;жхйк яйюмхпнбюмхъ сярпниярб				
+ScanDevices:
+;оюксвюел дюммше хг оюпрнб	I/O		
+			
 		MOV		EAX,[confAddr]				;мювюкэмши юдпея(BUS_0,DEV_0,FUN_0,_REG_0),ярюпьхи ахр гюпегепбхпнбюм
 		MOV		DX,0CF8H                    
 		OUT		DX,EAX						;бшярнбкъхл юдпея б онпр PCI CONFIG_ADDRESS	
@@ -36,25 +37,56 @@ CheckDevice:
 		IN		EAX,DX						;вхрюел пецхярп йнмт. опнярпюмярбю PCI хг CONFIG_DATA
 		CMP		AX,0FFFFH					;еякх VenID = 0FFFFH, сярпниярбн нрясрярбсер.
 	JE	.End								;бшахпюел якедсчыее сярпниярбн
-		PUSH	EAX							;янупнмъел пецхярп б ярщй
+		MOV		[regVenID],EAX				;янупнмъел пецхярп б ярщй
 		
 		MOV		EAX,[confAddr]				
-		ADD		EAX,08H						;сярюмюбкхбюел хмдейя пецхярпю йнмт. опнярюм PCI
+		ADD		EAX,08H						;Class code/Subclass/ProgIF/Revision ID
 		MOV		DX,0CF8H
 		OUT		DX,EAX						
 		MOV		DX,0CFCH
 		IN		EAX,DX	
 		MOV		[regClCode],EAX	
-		
-		MOV		EAX,[confAddr]				
-		ADD		EAX,0CH						;сярюмюбкхбюел хмдейя пецхярпю йнмт. опнярюм PCI
-		MOV		DX,0CF8H
-		OUT		DX,EAX						
-		MOV		DX,0CFCH
+	CALL	OutputScreen
+	
+		SHR		EAX,16
+		CMP		AX,0604H
+	JNE	.End
+	
+		MOV		EAX,[confAddr]	
+		ADD		EAX,18H							;Secondary Bus Number/Primary Bus Number сгмю╗л мнлеп брнпхвмни ьхмш
+		MOV		DX,0CF8H	
+		OUT		DX,EAX							
+		MOV		DX,0CFCH	
 		IN		EAX,DX	
-		MOV		[regHeadType],EAX		
 		
-;бшбндхл дюммше мю щйпюм					
+		MOV		EBX,[confAddr]					;янупнмъел рейсысч ьхмс, сярпниярбн х тсмйжхч 
+		PUSH	EBX
+			
+		MOV		BYTE[confAddr+2],AH				;бшярюбкъел Secondary Bus Number
+		MOV		BYTE[confAddr+1],0				;намскъел D:F	
+	CALL	ScanDevices	
+	
+		POP		EBX
+		MOV		[confAddr],EBX					;бнгбпюыюел B.D:F
+		
+;бшахпюел якедсчыее сярпниярбн
+.End:	
+		CMP	 	WORD[confAddr],0FF00H			;яйюмхпсел ндмс ьхмс
+	JE	_End
+		ADD		[confAddr],100H					;якедсчыее сярпниярбн, ьхмю
+	JMP	ScanDevices
+	
+_End:
+		CMP		BYTE[confAddr+3],0
+	JE	@F
+	RET
+@@:
+	JMP	$
+	
+OutputScreen:
+		PUSH	EAX
+
+	;бшбндхл дюммше мю щйпюм					
 		MOV		BL,BYTE[confAddr+2]			;бшъямъел мнлеп ьхмш
 		ADD		[addrBdf],160				;якедсчыюъ ярпнйю бшбндю б бхденоюлърх(80 * (мю яхлб. + юрпха.))	
 		MOV		DI,[addrBdf]	
@@ -72,37 +104,22 @@ CheckDevice:
 		MOV		BL,BYTE[confAddr+1]
 		AND		BL,7						;яювйхпсел ярюпьхе 5 ахр; мнлеп тсмйжхх 	
 	CALL	ConvNumOfStr1	                
-		POP		EBX							;б EBX пецхярп йнмт. опнярпюмярбю PCI
+		MOV		EBX,[regVenID]				;б EBX пецхярп йнмт. опнярпюмярбю PCI
 		ADD		[addrVen],160				;онйюгшбюер мю леярн дкъ бшбндю VenID
 		MOV		DI,[addrVen]
 	CALL	ConvNumOfStr2
 		SHR		EBX,16
 		ADD		[addrDev],160				;онйюгшбюер мю леярн дкъ бшбндю DevID
 		MOV		DI,[addrDev]				
-	CALL	ConvNumOfStr2
-	
+	CALL	ConvNumOfStr2		
 		MOV		BX,WORD[regClCode+2]
-		ADD		[addrRegPci],160				;онйюгшбюер мю леярн дкъ бшбндю DevID
-		MOV		DI,[addrRegPci]				
-	CALL	ConvNumOfStr2	
-		MOV		BL,BYTE[regClCode+1]	
+		ADD		[addrRegPci],160			;!!!люцхвеяйне вхякн
+		MOV		DI,[addrRegPci]
+	CALL	ConvNumOfStr2
+		MOV		BL,BYTE[regClCode+1]
 	CALL	ConvNumOfStr1
-	
-		MOV		BL,BYTE[regHeadType+2]
-		ADD		[addrHeadType],160			;онйюгшбюер мю леярн бшапнммнцн RegPci
-		MOV		DI,[addrHeadType]
-	CALL	ConvNumOfStr1
-
-;бшахпюел якедсчыее сярпниярбн
-.End:	
-		CMP	 	[confAddr],80FFFF00H			;яйюмхпсел ндмс ьхмс
-	JE	_End
-		ADD		[confAddr],100H					;якедсчыее сярпниярбн, ьхмю
-	JMP	CheckDevice
-	
-_End:
-	JMP	$
-	
+		POP		EAX
+	RET
 ;вей тсмйжхъ нопедекъчыюъ лняр PCI-PCI	
 
 	
@@ -126,7 +143,7 @@ NextPage:
 ;пюглхвюхл оюкъ	
 	CALL	FieldMarkup
 		MOV		DI,160
-	JMP	CheckDevice.L1
+	JMP	OutputScreen.L1
 
 ;пюглерйю онкъ	
 FieldMarkup:
@@ -134,7 +151,7 @@ FieldMarkup:
 ;гюлемхрэ мю йнмярюмрс
 		MOV		AH,00000100B			;йпюямши яхлбнк мю в╗пмнл тнме		
 	CALL	LineOut                       
-		MOV		DI,[addrVen]					;мюдохяэ VenID
+		MOV		DI,[addrVen]			;мюдохяэ VenID
 		MOV		SI,msgVen               
 		MOV		AH,00000100B			;йпюямши яхлбнк мю в╗пмнл тнме		
 	CALL	LineOut				        
@@ -231,7 +248,7 @@ LineOut:
 
 
 ;==========================дюммшх==================================
-msgBdf			DB	'B_D_F',0					;ьхмю_сярп_тсм
+msgBdf			DB	'B.D:F',0					;ьхмю.сярп:тсм
 msgVen			DB	'VenID',0
 msgDev			DB	'DevID',0
 msgClassCode	DB	'ClCode/SubCl',0
@@ -240,9 +257,12 @@ msg				DB	"Press any button to continue...",0
 ;0-2 тсмйжхъ(3 ахрю),3-7 сярпниярбн(5 ахр),8-15 ьхмю(8 ахр)
 confAddr		DD	80000000H					;мювюкэмши юдпея
 regClCode		DD  0	
+regVenID		DD  0
 regHeadType		DD	0							;оепелеммюъ дкъ упюмемхъ пец. PCI	
-addrBdf			DW	0							;леярн бшбндю "B_D_F"
+addrBdf			DW	0							;леярн бшбндю "B.D:F"
+secondaryBus	DB	0							;мнлеп брнпхвмни ьхмш
 addrVen			DW	32							;леярн бшбндю VenID	
 addrDev			DW	64							;леярн бшбндю DevID		
 addrRegPci		DW	96							;леярн бшбндю пец. PCI
-addrHeadType	DW	128							
+addrHeadType	DW	128	
+					
