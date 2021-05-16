@@ -2,13 +2,29 @@
 ;Created by Alexandr Kail
 ;Fasm, cp1251
 
-;яйюмхпсхл ьхмс PCI
-;0-7 хмдейя пхцхярпю
-;8-10 тсмйжхъ
-;11-15 сярпниярбю
-;16-23 ьхмю
-;24-30 пхгепб 0
-;31 C - ткюц днярсою й сярпниярбс 1 	
+;п║п п░п²п≤п═пёп≤п° п╗п≤п²пё PCI
+;0-7 п≤п²п■п∙п п║ п═п≤п⌠п≤п║п╒п═п░
+;8-10 п╓пёп²п п╕п≤п╞
+;11-15 пёп║п╒п═п·п≥п║п╒п▓п░
+;16-23 п╗п≤п²п░
+;24-30 п═п≤п≈п∙п═п▓ 0
+;31 C - п╓п⌡п░п⌠ п■п·п║п╒пёп÷п░ п  пёп║п╒п═п·п≥п║п╒п▓пё 1 
+
+;п п·п²п║п╒п░п²п╒п╚	
+CONF_ADDR			EQU 0CF8H						;п÷п·п═п╒ CONFIG_ADDRESS
+CONF_DATA			EQU	0CFCH						;п÷п·п═п╒ CONFIG_DATA
+CLASS_CODE 			EQU 08H							;Class code/Subclass/ProgIF/Revision ID
+SECONDARY_BUS		EQU	18H							;Secondary Bus Number/Primary Bus Number
+PCI_BRIDGE			EQU	0604H						;Class Code 06, Subclass 04
+SIZE_STR_SCREEN		EQU 160							;п═п░п≈п°п∙п═ п·п■п²п·п≥ п║п╒п═п·п п≤ п╜п п═п░п²п░ 80*2
+SIZE_SCREEN			EQU 0FA0H						;п═п░п≈п°п∙п═ п╜п п═п░п²п░ п▓ п▒п░п≥п╒п░п╔ 80я┘25
+WHITE_BLACK			EQU 7							;п▒п∙п⌡п╚п≥ п║п≤п°п▓п·п⌡ п²п░ п╖п│п═п²п░п° п╓п·п²п∙
+RED_BLACK			EQU 4								
+SECOND_COLUMN		EQU 32
+THIRD_COLUMN		EQU 64
+FOURTH_COLUMN		EQU 96
+FIFTH_COLUMN		EQU 128	
+
 Start:
 		MOV		AX,CS
 		MOV		DS,AX
@@ -16,64 +32,67 @@ Start:
 		MOV		SS,AX
 		MOV		SP,Start
 			STI
+;пёп║п╒п░п²п░п▓п⌡п∙п▓п░п∙п° п▓п≤п■п≤п· п═п∙п√п≤п°
+		MOV		AL,3						;AH=0 80x25
+	INT		10H
 		MOV		AH,1
-		MOV		CX,2000H
-	INT		10H								;сахпюел йспянп
-		MOV		AX,0B800H               	
-		MOV		ES,AX						;сярнмюбкебюел яецлемр мю бхден оюлърэ
-		XOR		DI,DI						;сйюгюрекэ б бхденоюлърх
-;пюглевюел онкъ	
+		MOV		CX,2000H					;5 п▒п≤п╒ CH п÷п·п■п░п▓п≤п╒п╛ п пёп═п║п·п═
+	INT		10H								;пёп▒п≤п═п░п∙п° п пёп═п║п·п═
+		MOV		AX,0B800H               	;п░п■п═п∙п║ п▓п≤п■п≤п· п÷п░п°п╞п╒п≤ п╒п∙п п║п╒п·п▓п·п⌠п· п═п∙п√п≤п°п░
+		MOV		ES,AX						;пёп║п╒п·п²п░п▓п⌡п∙п▓п░п∙п° п║п∙п⌠п°п∙п²п╒ п²п░ п▓п≤п■п∙п· п÷п░п°п╞п╒п╛
+		XOR		DI,DI						;пёп п░п≈п░п╒п∙п⌡п╛ п▓ п▓п≤п■п∙п·п÷п░п°п╞п╒п≤
+;п═п░п≈п°п∙п╖п░п∙п° п÷п·п⌡п╞	
 	CALL	FieldMarkup
 		XOR		CL,CL
 
-;жхйк яйюмхпнбюмхъ сярпниярб				
+;п╕п≤п п⌡ п║п п░п²п≤п═п·п▓п░п²п≤п╞ пёп║п╒п═п·п≥п║п╒п▓				
 ScanDevices:
-;оюксвюел дюммше хг оюпрнб	I/O		
+;п÷п░п⌡пёп╖п░п∙п° п■п░п²п²п╚п∙ п≤п≈ п÷п░п═п╒п·п▓	I/O		
 			
-		MOV		EAX,[confAddr]				;мювюкэмши юдпея(BUS_0,DEV_0,FUN_0,_REG_0),ярюпьхи ахр гюпегепбхпнбюм
-		MOV		DX,0CF8H                    
-		OUT		DX,EAX						;бшярнбкъхл юдпея б онпр PCI CONFIG_ADDRESS	
-		MOV		DX,0CFCH	                
-		IN		EAX,DX						;вхрюел пецхярп йнмт. опнярпюмярбю PCI хг CONFIG_DATA
-		CMP		AX,0FFFFH					;еякх VenID = 0FFFFH, сярпниярбн нрясрярбсер.
-	JE	.End								;бшахпюел якедсчыее сярпниярбн
-		MOV		[regVenID],EAX				;янупнмъел пецхярп б ярщй
+		MOV		EAX,[confAddr]				;п²п░п╖п░п⌡п╛п²п╚п≥ п░п■п═п∙п║(BUS_0,DEV_0,FUN_0,_REG_0),п║п╒п░п═п╗п≤п≥ п▒п≤п╒ п≈п░п═п∙п≈п∙п═п▓п≤п═п·п▓п░п²
+		MOV		DX,CONF_ADDR                    
+		OUT		DX,EAX						;п▓п╚п║п╒п·п▓п⌡п╞п≤п° п░п■п═п∙п║ п▓ п÷п·п═п╒ PCI CONFIG_ADDRESS	
+		MOV		DX,CONF_DATA	                
+		IN		EAX,DX						;п╖п≤п╒п░п∙п° п═п∙п⌠п≤п║п╒п═ п п·п²п╓. п÷п═п·п║п╒п═п░п²п║п╒п▓п░ PCI п≤п≈ CONFIG_DATA
+		CMP		AX,0FFFFH					;п∙п║п⌡п≤ VenID = 0FFFFH, пёп║п╒п═п·п≥п║п╒п▓п· п·п╒п║пёп╒п║п╒п▓пёп∙п╒.
+	JE	.End								;п▓п╚п▒п≤п═п░п∙п° п║п⌡п∙п■пёп╝п╘п∙п∙ пёп║п╒п═п·п≥п║п╒п▓п·
+		MOV		[regVenID],EAX				;п║п·п╔п═п·п²п╞п∙п° п═п∙п⌠п≤п║п╒п═ п▓ п║п╒п╜п 
 		
 		MOV		EAX,[confAddr]				
-		ADD		EAX,08H						;Class code/Subclass/ProgIF/Revision ID
-		MOV		DX,0CF8H
+		ADD		EAX,CLASS_CODE				;Class code/Subclass/ProgIF/Revision ID
+		MOV		DX,CONF_ADDR
 		OUT		DX,EAX						
-		MOV		DX,0CFCH
+		MOV		DX,CONF_DATA
 		IN		EAX,DX	
 		MOV		[regClCode],EAX	
-	CALL	OutputScreen
+	CALL	PrintScreen
 	
-		SHR		EAX,16
-		CMP		AX,0604H
+		SHR		EAX,16						;п·п║п╒п░п▓п⌡п╞п∙п° п■п▓п░ п║п╒п░п═п╗п≤п╔ п▒п░п≥п╒п░
+		CMP		AX,PCI_BRIDGE				
 	JNE	.End
 	
 		MOV		EAX,[confAddr]	
-		ADD		EAX,18H							;Secondary Bus Number/Primary Bus Number сгмю╗л мнлеп брнпхвмни ьхмш
-		MOV		DX,0CF8H	
+		ADD		EAX,SECONDARY_BUS			;Secondary Bus Number/Primary Bus Number пёп≈п²п░п│п° п²п·п°п∙п═ п▓п╒п·п═п≤п╖п²п·п≥ п╗п≤п²п╚
+		MOV		DX,CONF_ADDR	
 		OUT		DX,EAX							
-		MOV		DX,0CFCH	
+		MOV		DX,CONF_DATA	
 		IN		EAX,DX	
 		
-		MOV		EBX,[confAddr]					;янупнмъел рейсысч ьхмс, сярпниярбн х тсмйжхч 
+		MOV		EBX,[confAddr]					;п║п·п╔п═п·п²п╞п∙п° п╒п∙п пёп╘пёп╝ п╗п≤п²пё, пёп║п╒п═п·п≥п║п╒п▓п· п≤ п╓пёп²п п╕п≤п╝ 
 		PUSH	EBX
 			
-		MOV		BYTE[confAddr+2],AH				;бшярюбкъел Secondary Bus Number
-		MOV		BYTE[confAddr+1],0				;намскъел D:F	
+		MOV		BYTE[confAddr+2],AH				;п▓п╚п║п╒п░п▓п⌡п╞п∙п° Secondary Bus Number
+		MOV		BYTE[confAddr+1],0				;п·п▒п²пёп⌡п╞п∙п° D:F	
 	CALL	ScanDevices	
 	
 		POP		EBX
-		MOV		[confAddr],EBX					;бнгбпюыюел B.D:F
+		MOV		[confAddr],EBX					;п▓п·п≈п▓п═п░п╘п░п∙п° B.D:F
 		
-;бшахпюел якедсчыее сярпниярбн
+;п▓п╚п▒п≤п═п░п∙п° п║п⌡п∙п■пёп╝п╘п∙п∙ пёп║п╒п═п·п≥п║п╒п▓п·
 .End:	
-		CMP	 	WORD[confAddr],0FF00H			;яйюмхпсел ндмс ьхмс
+		CMP	 	WORD[confAddr],0FF00H			;п║п п░п²п≤п═пёп∙п° п·п■п²пё п╗п≤п²пё ;8-10 п╓пёп²п п╕п≤п╞, 11-15 пёп║п╒п═п·п≥п║п╒п▓п░
 	JE	_End
-		ADD		[confAddr],100H					;якедсчыее сярпниярбн, ьхмю
+		ADD		[confAddr],100H					;п║п⌡п∙п■пёп╝п╘п∙п∙ п╓пёп²п п╕п≤п╞, пёп║п╒п═п·п≥п║п╒п▓п·, п╗п≤п²п░
 	JMP	ScanDevices
 	
 _End:
@@ -83,157 +102,142 @@ _End:
 @@:
 	JMP	$
 	
-OutputScreen:
+PrintScreen:
 		PUSH	EAX
-
-	;бшбндхл дюммше мю щйпюм					
-		MOV		BL,BYTE[confAddr+2]			;бшъямъел мнлеп ьхмш
-		ADD		[addrBdf],160				;якедсчыюъ ярпнйю бшбндю б бхденоюлърх(80 * (мю яхлб. + юрпха.))	
+	;п▓п╚п▓п·п■п≤п° п■п░п²п²п╚п∙ п²п░ п╜п п═п░п²					
+		MOV		BL,BYTE[confAddr+2]			;п▓п╚п╞п║п²п╞п∙п° п²п·п°п∙п═ п╗п≤п²п╚
+		ADD		[addrBdf],SIZE_STR_SCREEN	;п║п⌡п∙п■пёп╝п╘п░п╞ п║п╒п═п·п п░ п▓п╚п▓п·п■п░ п▓ п▓п≤п■п∙п·п÷п░п°п╞п╒п≤(80 * (п²п░ п║п≤п°п▓. + п░п╒п═п≤п▒.))	
 		MOV		DI,[addrBdf]	
-		CMP		DI,0F00H					;онякедмъъ кх ярпнйю?	
-	JE	NextPage							;сярюмюбкхбюел бшбнд мю мнбши щйпюм
+		CMP		DI,0F00H					;п÷п·п║п⌡п∙п■п²п╞п╞ п⌡п≤ п║п╒п═п·п п░? 24*160(п п·п⌡. п▒п░п≥п╒ п▓ п·п■п²п·п≥ п║п╒п═п·п п∙)	
+	JE	NextPage							;пёп║п╒п░п²п░п▓п⌡п≤п▓п░п∙п° п▓п╚п▓п·п■ п²п░ п²п·п▓п╚п≥ п╜п п═п░п²
 .L1:
-	CALL	ConvNumOfStr1					;бшбндел мнлеп ьхмш
+	CALL	ConvNumOfStr1					;п▓п╚п▓п·п■п∙п° п²п·п°п∙п═ п╗п≤п²п╚
 		MOV		AL,'.'				           
-		STOSW								;бшбндел мхфмхи якщь
+		STOSW								;п▓п╚п▓п·п■п∙п° п²п≤п√п²п≤п≥ п║п⌡п╜п╗
 		MOV		BL,BYTE[confAddr+1]			   		
-		SHR		BL,3						;мнлеп сярпниярбю ярюпьхе 5 ахр
+		SHR		BL,3						;п²п·п°п∙п═ пёп║п╒п═п·п≥п║п╒п▓п░ п║п╒п░п═п╗п≤п∙ 5 п▒п≤п╒
 	CALL	ConvNumOfStr1
 		MOV		AL,':'
 		STOSW
 		MOV		BL,BYTE[confAddr+1]
-		AND		BL,7						;яювйхпсел ярюпьхе 5 ахр; мнлеп тсмйжхх 	
+		AND		BL,7									;п°п░п║п п≤п═пёп∙п° п║п╒п░п═п╗п≤п∙ 5 п▒п≤п╒; п²п·п°п∙п═ п╓пёп²п п╕п≤п≤ 	
 	CALL	ConvNumOfStr1	                
-		MOV		EBX,[regVenID]				;б EBX пецхярп йнмт. опнярпюмярбю PCI
-		ADD		[addrVen],160				;онйюгшбюер мю леярн дкъ бшбндю VenID
+		MOV		EBX,[regVenID]							;п▓ EBX п═п∙п⌠п≤п║п╒п═ п п·п²п╓. п÷п═п·п║п╒п═п░п²п║п╒п▓п░ PCI
+		ADD		[addrVen],SIZE_STR_SCREEN				;п÷п·п п░п≈п╚п▓п░п∙п╒ п²п░ п°п∙п║п╒п· п■п⌡п╞ п▓п╚п▓п·п■п░ VenID
 		MOV		DI,[addrVen]
 	CALL	ConvNumOfStr2
 		SHR		EBX,16
-		ADD		[addrDev],160				;онйюгшбюер мю леярн дкъ бшбндю DevID
+		ADD		[addrDev],SIZE_STR_SCREEN				;п÷п·п п░п≈п╚п▓п░п∙п╒ п²п░ п°п∙п║п╒п· п■п⌡п╞ п▓п╚п▓п·п■п░ DevID
 		MOV		DI,[addrDev]				
 	CALL	ConvNumOfStr2		
 		MOV		BX,WORD[regClCode+2]
-		ADD		[addrRegPci],160			;!!!люцхвеяйне вхякн
+		ADD		[addrRegPci],SIZE_STR_SCREEN			;пёп▓п∙п⌡п≤п╖п≤п▓п░п∙п° п²п░ п·п■п²пё п║п╒п═п·п пё
 		MOV		DI,[addrRegPci]
 	CALL	ConvNumOfStr2
 		MOV		BL,BYTE[regClCode+1]
 	CALL	ConvNumOfStr1
 		POP		EAX
 	RET
-;вей тсмйжхъ нопедекъчыюъ лняр PCI-PCI	
-
 	
-;тсмйжхъ ондцюрнбйх якедсчыеи ярпюмхжш	
+;п╓пёп²п п╕п≤п╞ п÷п·п■п⌠п░п╒п·п▓п п≤ п║п⌡п∙п■пёп╝п╘п∙п≥ п║п╒п═п░п²п≤п╕п╚	
 NextPage:
 		MOV		SI,msg
-		MOV		AH,00000111B	;аекши яхлбнк мю в╗пмюл тнме			
-	CALL	LineOut				;бшбндел яннаыемхе
+		MOV		AH,WHITE_BLACK	;п▒п∙п⌡п╚п≥ п║п≤п°п▓п·п⌡ п²п░ п╖п│п═п²п░п° п╓п·п²п∙			
+	CALL	LineOut				;п▓п╚п▓п·п■п∙п° п║п·п·п▒п╘п∙п²п≤п∙
 		MOV		AH,10H          
-	INT	16H						;явхршбюмхъ яхлбнкю я нфхдюмхел
+	INT	16H						;п║п╖п≤п╒п╚п▓п░п²п≤п╞ п║п≤п°п▓п·п⌡п░ п║ п·п√п≤п■п░п²п≤п∙п°
 		XOR		EAX,EAX
 		XOR		DI,DI
-		MOV		CX,0FA0H
+		MOV		CX,SIZE_SCREEN
 	REP	STOSD
-		MOV		[addrBdf],160
-		MOV		[addrVen],32
-		MOV		[addrDev],64
-		MOV		[addrRegPci],96
-		MOV		[addrHeadType],128
+		MOV		[addrBdf],SIZE_STR_SCREEN
+		MOV		[addrVen],SECOND_COLUMN
+		MOV		[addrDev],THIRD_COLUMN
+		MOV		[addrRegPci],FOURTH_COLUMN
+		MOV		[addrHeadType],FIFTH_COLUMN
 		XOR		DI,DI
-;пюглхвюхл оюкъ	
+;п═п░п≈п°п≤п╖п░п≤п° п÷п░п⌡п╞	
 	CALL	FieldMarkup
-		MOV		DI,160
-	JMP	OutputScreen.L1
+		MOV		DI,SIZE_STR_SCREEN
+	JMP	PrintScreen.L1
 
-;пюглерйю онкъ	
+;п═п░п≈п°п∙п╒п п░ п÷п·п⌡п╞	
 FieldMarkup:
-		MOV		SI,msgBdf				;бшбндхлюъ ярпнйю
-;гюлемхрэ мю йнмярюмрс
-		MOV		AH,00000100B			;йпюямши яхлбнк мю в╗пмнл тнме		
+		MOV		SI,msgBdf				;п▓п╚п▓п·п■п≤п°п░п╞ п║п╒п═п·п п░
+;п≈п░п°п∙п²п≤п╒п╛ п²п░ п п·п²п║п╒п░п²п╒пё
+		MOV		AH,RED_BLACK			;п п═п░п║п²п╚п≥ п║п≤п°п▓п·п⌡ п²п░ п╖п│п═п²п·п° п╓п·п²п∙		
 	CALL	LineOut                       
-		MOV		DI,[addrVen]			;мюдохяэ VenID
+		MOV		DI,[addrVen]			;п²п░п■п÷п≤п║п╛ VenID
 		MOV		SI,msgVen               
-		MOV		AH,00000100B			;йпюямши яхлбнк мю в╗пмнл тнме		
+		MOV		AH,RED_BLACK			;п п═п░п║п²п╚п≥ п║п≤п°п▓п·п⌡ п²п░ п╖п│п═п²п·п° п╓п·п²п∙		
 	CALL	LineOut				        
-		MOV		DI,[addrDev]					;мюдохяэ DevID
+		MOV		DI,[addrDev]					;п²п░п■п÷п≤п║п╛ DevID
 		MOV		SI,msgDev               
-		MOV		AH,00000100B			;йпюямши яхлбнк мю в╗пмнл тнме		
+		MOV		AH,RED_BLACK			;п п═п░п║п²п╚п≥ п║п≤п°п▓п·п⌡ п²п░ п╖п│п═п²п·п° п╓п·п²п∙		
 	CALL	LineOut
 		MOV		DI,[addrRegPci]
 		MOV		SI,msgClassCode
-		MOV		AH,00000100B
+		MOV		AH,RED_BLACK
 	CALL	LineOut
 		MOV		DI,[addrHeadType]
 		MOV		SI,msgHeadType	
-		MOV		AH,00000100B
+		MOV		AH,RED_BLACK
 	CALL	LineOut
 	
 	RET	
 		
-;опенапюгсел дбю аюирю б ASCII яхлбнк
-;б BX бшбндхлне HEX гмювемхе
-;б ES:DI юдпея бхденоюлърх
+;п÷п═п∙п·п▒п═п░п≈пёп∙п° п■п▓п░ п▒п░п≥п╒п░ п▓ ASCII п║п≤п°п▓п·п⌡
+;п▓ BX п▓п╚п▓п·п■п≤п°п·п∙ HEX п≈п²п░п╖п∙п²п≤п∙
+;п▓ ES:DI п░п■п═п∙п║ п▓п≤п■п∙п·п÷п░п°п╞п╒п≤
 ConvNumOfStr2:		
-		MOV		AH,00000100B	
-		MOV		AL,BH			;ярюпьхи аюир
-;!!!!!!!!!!!!!! оПХДСЛЮРЭ МЮГБЮМХЕ
-	CALL	Fun1				;бшбндхл аюир
-		MOV		AL,BL			;лкюдьхи аюир
-	CALL	Fun1                
+		MOV		AH,RED_BLACK	
+		MOV		AL,BH			;п║п╒п░п═п╗п≤п≥ п▒п░п≥п╒
+;!!!!!!!!!!!!!! п÷я─п╦п╢я┐п╪п╟я┌я▄ п╫п╟п╥п╡п╟п╫п╦п╣
+	CALL	Fun					;п▓п╚п▓п·п■п≤п° п▒п░п≥п╒
+		MOV		AL,BL			;п°п⌡п░п■п╗п≤п≥ п▒п░п≥п╒
+	CALL	Fun                
 
 	RET                         
-Fun1:	                        
-		PUSH	AX				;янупюмъел AL
-		SHR		AL,4			;ярюпьхи пюгпъд аюирю
-	CALL 	CharOut				;бшбнд яхлбнкю
-		POP		AX				;бнярюмюбкебюел
-		AND		AL,00001111B	;лкюдьхи пюгпъд аюирю		
+Fun:	                        
+		PUSH	AX				;п║п·п╔п═п░п²п╞п∙п° AL
+		SHR		AL,4			;п║п╒п░п═п╗п≤п≥ п═п░п≈п═п╞п■ п▒п░п≥п╒п░
+	CALL 	CharOut				;п▓п╚п▓п·п■ п║п≤п°п▓п·п⌡п░
+		POP		AX				;п▓п·п║п╒п░п²п░п▓п⌡п∙п▓п░п∙п°
+		AND		AL,00001111B	;п°п⌡п░п■п╗п≤п≥ п═п░п≈п═п╞п■ п▒п░п≥п╒п░		
 	CALL	CharOut			    
 
 	RET                         
 
 CharOut:						
-		CMP		AL,0AH			;жхтпш хкх асйбш
+		CMP		AL,0AH			;п╕п≤п╓п═п╚ п≤п⌡п≤ п▒пёп п▓п╚
 		JAE	L1	                
-		ADD		AL,30H			;опеюапюгсхл б ASCII
+		ADD		AL,30H			;п÷п═п∙п░п▒п═п░п≈пёп≤п° п▓ ASCII
 @@:			                    
 		STOSW                   
 	RET                         
 
 L1:                             
-		ADD		AL,37H			;опеюапюгсхл б ASCII
+		ADD		AL,37H			;п÷п═п∙п░п▒п═п░п≈пёп≤п° п▓ ASCII
 	JMP	@b	
 
-;опенапюгсел 1 аюир б ASCII яхлбнк
-;б BL бшбндхлне HEX гмювемхе
-;б ES:DI юдпея бхденоюлърх
+;п÷п═п∙п·п▒п═п░п≈пёп∙п° 1 п▒п░п≥п╒ п▓ ASCII п║п≤п°п▓п·п⌡
+;п▓ BL п▓п╚п▓п·п■п≤п°п·п∙ HEX п≈п²п░п╖п∙п²п≤п∙
+;п▓ ES:DI п░п■п═п∙п║ п▓п≤п■п∙п·п÷п░п°п╞п╒п≤
 ConvNumOfStr1:
-		MOV		AH,00000100B	
-		MOV		AL,BL			;бшбндхлши аюир	
-		PUSH	AX				;янупюмъел AL
-		SHR		AL,4			;ярюпьхи пюгпъд аюирю
-	CALL 	.CharOut			;бшбнд яхлбнкю
-		POP		AX				;бнярюмюбкебюел
-		AND		AL,00001111B	;лкюдьхи пюгпъд аюирю
-	CALL	.CharOut							
-	RET                         
-
-.CharOut:                       
-		CMP		AL,0AH			;жхтпш хкх асйбш
-		JAE	.L1	                
-		ADD		AL,30H			;опенапюгсел б ASCII
-@@:			                    
-		STOSW                   
+		MOV		AH,RED_BLACK	
+		MOV		AL,BL			;п▓п╚п▓п·п■п≤п°п╚п≥ п▒п░п≥п╒	
+		PUSH	AX				;п║п·п╔п═п░п²п╞п∙п° AL
+		SHR		AL,4			;п║п╒п░п═п╗п≤п≥ п═п░п≈п═п╞п■ п▒п░п≥п╒п░
+	CALL 	CharOut				;п▓п╚п▓п·п■ п║п≤п°п▓п·п⌡п░
+		POP		AX				;п▓п·п║п╒п░п²п░п▓п⌡п∙п▓п░п∙п°
+		AND		AL,00001111B	;п°п⌡п░п■п╗п≤п≥ п═п░п≈п═п╞п■ п▒п░п≥п╒п░
+	CALL	CharOut							
 	RET                         
 	
-.L1:                            
-		ADD		AL,37H			;опенапюгсел б ASCII
-	JMP	@b	
-	
-;бшбндел ярпнйс яхлбнкнб гюйюмвхбючысчяъ 0
-;б DS:SI ярпнйю яхлбнкнб	
-;б ES:DI ялеыемхе б бхденоюлърх
-;б AH юрпхаср яхлбнкю		
+;п▓п╚п▓п·п■п∙п° п║п╒п═п·п пё п║п≤п°п▓п·п⌡п·п▓ п≈п░п п░п²п╖п≤п▓п░п╝п╘пёп╝п║п╞ 0
+;п▓ DS:SI п║п╒п═п·п п░ п║п≤п°п▓п·п⌡п·п▓	
+;п▓ ES:DI п║п°п∙п╘п∙п²п≤п∙ п▓ п▓п≤п■п∙п·п÷п░п°п╞п╒п≤
+;п▓ AH п░п╒п═п≤п▒пёп╒ п║п≤п°п▓п·п⌡п░		
 LineOut:						
 		MOV		AL,[SI]
 		CMP		AL,0
@@ -245,24 +249,26 @@ LineOut:
 .End:	
 	RET	
 	
+;==========================п■п░п²п²п╚п≤==================================
+;п÷п∙п═п∙п°п∙п²п²п╚п∙
+msgBdf				DB	'B.D:F',0					;п╗п≤п²п░.пёп║п╒п═:п╓пёп²
+msgVen				DB	'VenID',0
+msgDev				DB	'DevID',0
+msgClassCode		DB	'ClCode/SubCl',0
+msgHeadType			DB	'HeaderType',0
+msg					DB	"Press any button to continue...",0
+;0-2 п╓пёп²п п╕п≤п╞(3 п▒п≤п╒п░),3-7 пёп║п╒п═п·п≥п║п╒п▓п·(5 п▒п≤п╒),8-15 п╗п≤п²п░(8 п▒п≤п╒)
+confAddr			DD	80000000H					;п²п░п╖п░п⌡п╛п²п╚п≥ п░п■п═п∙п║
+regClCode			DD  0	
+regVenID			DD  0
+regHeadType			DD	0							;п÷п∙п═п∙п°п∙п²п²п░п╞ п■п⌡п╞ п╔п═п░п²п∙п²п≤п╞ п═п∙п⌠. PCI	
+addrBdf				DW	0							;п°п∙п║п╒п· п▓п╚п▓п·п■п░ "B.D:F"
+secondaryBus		DB	0							;п²п·п°п∙п═ п▓п╒п·п═п≤п╖п²п·п≥ п╗п≤п²п╚
+addrVen				DW	SECOND_COLUMN				;п°п∙п║п╒п· п▓п╚п▓п·п■п░ VenID	
+addrDev				DW	THIRD_COLUMN				;п°п∙п║п╒п· п▓п╚п▓п·п■п░ DevID		
+addrRegPci			DW	FOURTH_COLUMN				;п°п∙п║п╒п· п▓п╚п▓п·п■п░ п═п∙п⌠. PCI
+addrHeadType		DW	FIFTH_COLUMN
 
 
-;==========================дюммшх==================================
-msgBdf			DB	'B.D:F',0					;ьхмю.сярп:тсм
-msgVen			DB	'VenID',0
-msgDev			DB	'DevID',0
-msgClassCode	DB	'ClCode/SubCl',0
-msgHeadType		DB	'HeaderType',0
-msg				DB	"Press any button to continue...",0
-;0-2 тсмйжхъ(3 ахрю),3-7 сярпниярбн(5 ахр),8-15 ьхмю(8 ахр)
-confAddr		DD	80000000H					;мювюкэмши юдпея
-regClCode		DD  0	
-regVenID		DD  0
-regHeadType		DD	0							;оепелеммюъ дкъ упюмемхъ пец. PCI	
-addrBdf			DW	0							;леярн бшбндю "B.D:F"
-secondaryBus	DB	0							;мнлеп брнпхвмни ьхмш
-addrVen			DW	32							;леярн бшбндю VenID	
-addrDev			DW	64							;леярн бшбндю DevID		
-addrRegPci		DW	96							;леярн бшбндю пец. PCI
-addrHeadType	DW	128	
-					
+
+	
