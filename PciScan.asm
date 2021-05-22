@@ -171,7 +171,7 @@ FieldMarkup:
 		MOV		SI,msgVen               
 		MOV		AH,RED_BLACK			;КРАСНЫЙ СИМВОЛ НА ЧЁРНОМ ФОНЕ		
 	CALL	LineOut				        
-		MOV		DI,[addrDev]					;НАДПИСЬ DevID
+		MOV		DI,[addrDev]			;НАДПИСЬ DevID
 		MOV		SI,msgDev               
 		MOV		AH,RED_BLACK			;КРАСНЫЙ СИМВОЛ НА ЧЁРНОМ ФОНЕ		
 	CALL	LineOut
