@@ -2,7 +2,7 @@
 ;Created by Alexandr Kail
 ;Fasm, cp1251
 
-;СКАНИРУИМ ШИНУ PCI
+;СКАНИРУЕМ ШИНУ PCI
 ;0-7 ИНДЕКС РИГИСТРА
 ;8-10 ФУНКЦИЯ
 ;11-15 УСТРОЙСТВА
@@ -16,9 +16,9 @@ CONF_DATA			EQU	0CFCH						;ПОРТ CONFIG_DATA
 CLASS_CODE 			EQU 08H							;Class code/Subclass/ProgIF/Revision ID
 SECONDARY_BUS		EQU	18H							;Secondary Bus Number/Primary Bus Number
 PCI_BRIDGE			EQU	0604H						;Class Code 06, Subclass 04
-SIZE_STR_SCREEN		EQU 160							;РАЗМЕР ОДНОЙ СТРОКИ ЭКРАНА 80*2
+SIZE_STR_SCREEN		EQU 160								;РАЗМЕР ОДНОЙ СТРОКИ ЭКРАНА 80*2
 SIZE_SCREEN			EQU 0FA0H						;РАЗМЕР ЭКРАНА В БАЙТАХ 80х25
-WHITE_BLACK			EQU 7							;БЕЛЫЙ СИМВОЛ НА ЧЁРНАМ ФОНЕ
+WHITE_BLACK			EQU 7							;БЕЛЫЙ СИМВОЛ НА ЧЁРНОМ ФОНЕ
 RED_BLACK			EQU 4								
 SECOND_COLUMN		EQU 32
 THIRD_COLUMN		EQU 64
@@ -37,8 +37,8 @@ Start:
 	INT		10H
 		MOV		AH,1
 		MOV		CX,2000H					;5 БИТ CH ПОДАВИТЬ КУРСОР
-	INT		10H								;УБИРАЕМ КУРСОР
-		MOV		AX,0B800H               	;АДРЕС ВИДИО ПАМЯТИ ТЕКСТОВОГО РЕЖИМА
+	INT		10H							;УБИРАЕМ КУРСОР
+		MOV		AX,0B800H               			;АДРЕС ВИДЕО ПАМЯТИ ТЕКСТОВОГО РЕЖИМА
 		MOV		ES,AX						;УСТОНАВЛЕВАЕМ СЕГМЕНТ НА ВИДЕО ПАМЯТЬ
 		XOR		DI,DI						;УКАЗАТЕЛЬ В ВИДЕОПАМЯТИ
 ;РАЗМЕЧАЕМ ПОЛЯ	
@@ -49,17 +49,17 @@ Start:
 ScanDevices:
 ;ПАЛУЧАЕМ ДАННЫЕ ИЗ ПАРТОВ	I/O		
 			
-		MOV		EAX,[confAddr]				;НАЧАЛЬНЫЙ АДРЕС(BUS_0,DEV_0,FUN_0,_REG_0),СТАРШИЙ БИТ ЗАРЕЗЕРВИРОВАН
+		MOV		EAX,[confAddr]					;НАЧАЛЬНЫЙ АДРЕС(BUS_0,DEV_0,FUN_0,_REG_0),СТАРШИЙ БИТ ЗАРЕЗЕРВИРОВАН
 		MOV		DX,CONF_ADDR                    
 		OUT		DX,EAX						;ВЫСТОВЛЯИМ АДРЕС В ПОРТ PCI CONFIG_ADDRESS	
 		MOV		DX,CONF_DATA	                
 		IN		EAX,DX						;ЧИТАЕМ РЕГИСТР КОНФ. ПРОСТРАНСТВА PCI ИЗ CONFIG_DATA
 		CMP		AX,0FFFFH					;ЕСЛИ VenID = 0FFFFH, УСТРОЙСТВО ОТСУТСТВУЕТ.
 	JE	.End								;ВЫБИРАЕМ СЛЕДУЮЩЕЕ УСТРОЙСТВО
-		MOV		[regVenID],EAX				;СОХРОНЯЕМ РЕГИСТР В СТЭК
+		MOV		[regVenID],EAX					;СОХРОНЯЕМ РЕГИСТР В СТЭК
 		
 		MOV		EAX,[confAddr]				
-		ADD		EAX,CLASS_CODE				;Class code/Subclass/ProgIF/Revision ID
+		ADD		EAX,CLASS_CODE					;Class code/Subclass/ProgIF/Revision ID
 		MOV		DX,CONF_ADDR
 		OUT		DX,EAX						
 		MOV		DX,CONF_DATA
@@ -72,7 +72,7 @@ ScanDevices:
 	JNE	.End
 	
 		MOV		EAX,[confAddr]	
-		ADD		EAX,SECONDARY_BUS			;Secondary Bus Number/Primary Bus Number УЗНАЁМ НОМЕР ВТОРИЧНОЙ ШИНЫ
+		ADD		EAX,SECONDARY_BUS				;Secondary Bus Number/Primary Bus Number УЗНАЁМ НОМЕР ВТОРИЧНОЙ ШИНЫ
 		MOV		DX,CONF_ADDR	
 		OUT		DX,EAX							
 		MOV		DX,CONF_DATA	
@@ -90,9 +90,9 @@ ScanDevices:
 		
 ;ВЫБИРАЕМ СЛЕДУЮЩЕЕ УСТРОЙСТВО
 .End:	
-		CMP	 	WORD[confAddr],0FF00H			;СКАНИРУЕМ ОДНУ ШИНУ ;8-10 ФУНКЦИЯ, 11-15 УСТРОЙСТВА
+		CMP	 	WORD[confAddr],0FF00H				;СКАНИРУЕМ ОДНУ ШИНУ ;8-10 ФУНКЦИЯ, 11-15 УСТРОЙСТВА
 	JE	_End
-		ADD		[confAddr],100H					;СЛЕДУЮЩЕЕ ФУНКЦИЯ, УСТРОЙСТВО, ШИНА
+		ADD		[confAddr],100H					;СЛЕДУЮЩЕЯ ФУНКЦИЯ, УСТРОЙСТВО, ШИНА
 	JMP	ScanDevices
 	
 _End:
@@ -105,13 +105,13 @@ _End:
 PrintScreen:
 		PUSH	EAX
 	;ВЫВОДИМ ДАННЫЕ НА ЭКРАН					
-		MOV		BL,BYTE[confAddr+2]			;ВЫЯСНЯЕМ НОМЕР ШИНЫ
-		ADD		[addrBdf],SIZE_STR_SCREEN	;СЛЕДУЮЩАЯ СТРОКА ВЫВОДА В ВИДЕОПАМЯТИ(80 * (НА СИМВ. + АТРИБ.))	
+		MOV		BL,BYTE[confAddr+2]				;ВЫЯСНЯЕМ НОМЕР ШИНЫ
+		ADD		[addrBdf],SIZE_STR_SCREEN			;СЛЕДУЮЩАЯ СТРОКА ВЫВОДА В ВИДЕОПАМЯТИ(80 * (НА СИМВ. + АТРИБ.))	
 		MOV		DI,[addrBdf]	
 		CMP		DI,0F00H					;ПОСЛЕДНЯЯ ЛИ СТРОКА? 24*160(КОЛ. БАЙТ В ОДНОЙ СТРОКЕ)	
 	JE	NextPage							;УСТАНАВЛИВАЕМ ВЫВОД НА НОВЫЙ ЭКРАН
 .L1:
-	CALL	ConvNumOfStr1					;ВЫВОДЕМ НОМЕР ШИНЫ
+	CALL	ConvNumOfStr1							;ВЫВОДЕМ НОМЕР ШИНЫ
 		MOV		AL,'.'				           
 		STOSW								;ВЫВОДЕМ НИЖНИЙ СЛЭШ
 		MOV		BL,BYTE[confAddr+1]			   		
@@ -120,14 +120,14 @@ PrintScreen:
 		MOV		AL,':'
 		STOSW
 		MOV		BL,BYTE[confAddr+1]
-		AND		BL,7									;МАСКИРУЕМ СТАРШИЕ 5 БИТ; НОМЕР ФУНКЦИИ 	
+		AND		BL,7						;МАСКИРУЕМ СТАРШИЕ 5 БИТ; НОМЕР ФУНКЦИИ 	
 	CALL	ConvNumOfStr1	                
-		MOV		EBX,[regVenID]							;В EBX РЕГИСТР КОНФ. ПРОСТРАНСТВА PCI
-		ADD		[addrVen],SIZE_STR_SCREEN				;ПОКАЗЫВАЕТ НА МЕСТО ДЛЯ ВЫВОДА VenID
+		MOV		EBX,[regVenID]					;В EBX РЕГИСТР КОНФ. ПРОСТРАНСТВА PCI
+		ADD		[addrVen],SIZE_STR_SCREEN			;ПОКАЗЫВАЕТ НА МЕСТО ДЛЯ ВЫВОДА VenID
 		MOV		DI,[addrVen]
 	CALL	ConvNumOfStr2
 		SHR		EBX,16
-		ADD		[addrDev],SIZE_STR_SCREEN				;ПОКАЗЫВАЕТ НА МЕСТО ДЛЯ ВЫВОДА DevID
+		ADD		[addrDev],SIZE_STR_SCREEN			;ПОКАЗЫВАЕТ НА МЕСТО ДЛЯ ВЫВОДА DevID
 		MOV		DI,[addrDev]				
 	CALL	ConvNumOfStr2		
 		MOV		BX,WORD[regClCode+2]
@@ -142,8 +142,8 @@ PrintScreen:
 ;ФУНКЦИЯ ПОДГАТОВКИ СЛЕДУЮЩЕЙ СТРАНИЦЫ	
 NextPage:
 		MOV		SI,msg
-		MOV		AH,WHITE_BLACK	;БЕЛЫЙ СИМВОЛ НА ЧЁРНАМ ФОНЕ			
-	CALL	LineOut				;ВЫВОДЕМ СООБЩЕНИЕ
+		MOV		AH,WHITE_BLACK			;БЕЛЫЙ СИМВОЛ НА ЧЁРНАМ ФОНЕ			
+	CALL	LineOut						;ВЫВОДЕМ СООБЩЕНИЕ
 		MOV		AH,10H          
 	INT	16H						;СЧИТЫВАНИЯ СИМВОЛА С ОЖИДАНИЕМ
 		XOR		EAX,EAX
@@ -163,7 +163,7 @@ NextPage:
 
 ;РАЗМЕТКА ПОЛЯ	
 FieldMarkup:
-		MOV		SI,msgBdf				;ВЫВОДИМАЯ СТРОКА
+		MOV		SI,msgBdf			;ВЫВОДИМАЯ СТРОКА
 ;ЗАМЕНИТЬ НА КОНСТАНТУ
 		MOV		AH,RED_BLACK			;КРАСНЫЙ СИМВОЛ НА ЧЁРНОМ ФОНЕ		
 	CALL	LineOut                       
@@ -201,9 +201,9 @@ ConvNumOfStr2:
 Fun:	                        
 		PUSH	AX				;СОХРАНЯЕМ AL
 		SHR		AL,4			;СТАРШИЙ РАЗРЯД БАЙТА
-	CALL 	CharOut				;ВЫВОД СИМВОЛА
-		POP		AX				;ВОСТАНАВЛЕВАЕМ
-		AND		AL,00001111B	;МЛАДШИЙ РАЗРЯД БАЙТА		
+	CALL 	CharOut					;ВЫВОД СИМВОЛА
+		POP		AX			;ВОСТАНАВЛЕВАЕМ
+		AND		AL,00001111B		;МЛАДШИЙ РАЗРЯД БАЙТА		
 	CALL	CharOut			    
 
 	RET                         
@@ -228,9 +228,9 @@ ConvNumOfStr1:
 		MOV		AL,BL			;ВЫВОДИМЫЙ БАЙТ	
 		PUSH	AX				;СОХРАНЯЕМ AL
 		SHR		AL,4			;СТАРШИЙ РАЗРЯД БАЙТА
-	CALL 	CharOut				;ВЫВОД СИМВОЛА
-		POP		AX				;ВОСТАНАВЛЕВАЕМ
-		AND		AL,00001111B	;МЛАДШИЙ РАЗРЯД БАЙТА
+	CALL 	CharOut					;ВЫВОД СИМВОЛА
+		POP		AX			;ВОССТАНАВЛИВАЕМ
+		AND		AL,00001111B		;МЛАДШИЙ РАЗРЯД БАЙТА
 	CALL	CharOut							
 	RET                         
 	
@@ -261,12 +261,12 @@ msg					DB	"Press any button to continue...",0
 confAddr			DD	80000000H					;НАЧАЛЬНЫЙ АДРЕС
 regClCode			DD  0	
 regVenID			DD  0
-regHeadType			DD	0							;ПЕРЕМЕННАЯ ДЛЯ ХРАНЕНИЯ РЕГ. PCI	
-addrBdf				DW	0							;МЕСТО ВЫВОДА "B.D:F"
+regHeadType			DD	0						;ПЕРЕМЕННАЯ ДЛЯ ХРАНЕНИЯ РЕГ. PCI	
+addrBdf				DW	0						;МЕСТО ВЫВОДА "B.D:F"
 secondaryBus		DB	0							;НОМЕР ВТОРИЧНОЙ ШИНЫ
-addrVen				DW	SECOND_COLUMN				;МЕСТО ВЫВОДА VenID	
-addrDev				DW	THIRD_COLUMN				;МЕСТО ВЫВОДА DevID		
-addrRegPci			DW	FOURTH_COLUMN				;МЕСТО ВЫВОДА РЕГ. PCI
+addrVen				DW	SECOND_COLUMN					;МЕСТО ВЫВОДА VenID	
+addrDev				DW	THIRD_COLUMN					;МЕСТО ВЫВОДА DevID		
+addrRegPci			DW	FOURTH_COLUMN					;МЕСТО ВЫВОДА РЕГ. PCI
 addrHeadType		DW	FIFTH_COLUMN
 
 
